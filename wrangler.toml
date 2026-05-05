@@ -1,0 +1,12 @@
+name = "text-share-worker"
+main = "index.js"
+compatibility_date = "2024-11-25"
+account_id = "4407bba7f9c7e739413dacd8187abcd5"
+
+kv_namespaces = [
+  { binding = "TEXT_STORAGE", id = "19a24b2442854d179f08892be2ee71be" }
+]
+
+[[routes]]
+pattern = "text.guolei.site"
+custom_domain = true
