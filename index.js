@@ -288,7 +288,10 @@ function serveHTML() {
         </form>
 
         <section id="retrieveResult" class="notice notice-success hidden" aria-live="polite">
-          <p class="label">获取成功</p>
+          <div class="notice-head">
+            <p class="label">获取成功</p>
+            <button id="copyRetrievedText" class="button button-ghost" type="button">复制文本</button>
+          </div>
           <div id="retrievedText" class="text-output"></div>
           <p id="expiresInfo" class="notice-meta"></p>
         </section>
@@ -814,6 +817,7 @@ const retrieveForm = document.getElementById('retrieveForm');
 const codeInput = document.getElementById('codeInput');
 const retrieveResult = document.getElementById('retrieveResult');
 const retrievedText = document.getElementById('retrievedText');
+const copyRetrievedText = document.getElementById('copyRetrievedText');
 const sendExpiresInfo = document.getElementById('sendExpiresInfo');
 const expiresInfo = document.getElementById('expiresInfo');
 const errorResult = document.getElementById('errorResult');
@@ -991,6 +995,21 @@ copyCode.addEventListener('click', async () => {
   } catch (error) {
     console.error(error);
     showError('复制失败，请手动选中分享码。');
+  }
+});
+
+copyRetrievedText.addEventListener('click', async () => {
+  const text = retrievedText.textContent;
+  if (!text) {
+    return;
+  }
+
+  try {
+    await copyText(text);
+    flashButton(copyRetrievedText, '已复制');
+  } catch (error) {
+    console.error(error);
+    showError('复制文本失败，请检查浏览器剪贴板权限后重试。');
   }
 });
 
