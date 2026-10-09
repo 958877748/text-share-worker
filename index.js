@@ -50,10 +50,6 @@ async function handleAPI(request, env, url) {
       return jsonResponse({ status: 'ok' }, corsHeaders);
     }
 
-    if (url.pathname === '/api/ip' && request.method === 'GET') {
-      return handleIPInfo(request, corsHeaders);
-    }
-
     return jsonResponse({ error: 'Endpoint not found' }, corsHeaders, 404);
   } catch (error) {
     console.error('API error', error);
@@ -162,61 +158,6 @@ async function handleRetrieve(code, env, corsHeaders) {
   );
 }
 
-async function handleIPInfo(request, corsHeaders) {
-  const forwardedFor = request.headers.get('X-Forwarded-For') || '';
-  const visitorIP =
-    request.headers.get('CF-Connecting-IP') ||
-    forwardedFor.split(',')[0].trim();
-
-  if (!visitorIP) {
-    return jsonResponse(
-      { success: false, error: 'Unable to identify visitor IP' },
-      corsHeaders,
-      400
-    );
-  }
-
-  const response = await fetch(
-    `http://ip-api.com/json/${encodeURIComponent(visitorIP)}?lang=zh-CN`,
-    {
-      headers: {
-        Accept: 'application/json',
-      },
-    }
-  );
-
-  if (!response.ok) {
-    return jsonResponse(
-      { success: false, error: 'Unable to query IP information' },
-      corsHeaders,
-      502
-    );
-  }
-
-  const data = await response.json();
-  if (data.status !== 'success') {
-    return jsonResponse(
-      { success: false, error: data.message || 'Unable to query IP information' },
-      corsHeaders,
-      502
-    );
-  }
-
-  return jsonResponse(
-    {
-      success: true,
-      ip: data.query || visitorIP,
-      country: data.country || '',
-      region: data.regionName || '',
-      city: data.city || '',
-      isp: data.isp || '',
-      org: data.org || '',
-      timezone: data.timezone || '',
-    },
-    corsHeaders
-  );
-}
-
 function generateCode() {
   const values = new Uint32Array(1);
   crypto.getRandomValues(values);
@@ -282,34 +223,6 @@ function serveHTML() {
         <span>最大长度</span>
         <strong>10000 字符</strong>
       </div>
-    </section>
-
-    <section class="ip-card" aria-label="当前访问 IP 信息">
-      <div class="ip-card-head">
-        <div>
-          <p class="kicker">当前访问的 IP 信息</p>
-          <h2 id="ipAddress">正在查询...</h2>
-        </div>
-        <span id="ipStatus" class="panel-tag panel-tag-soft">ip-api.com</span>
-      </div>
-      <dl class="ip-grid">
-        <div>
-          <dt>位置</dt>
-          <dd id="ipLocation">--</dd>
-        </div>
-        <div>
-          <dt>运营商</dt>
-          <dd id="ipIsp">--</dd>
-        </div>
-        <div>
-          <dt>组织</dt>
-          <dd id="ipOrg">--</dd>
-        </div>
-        <div>
-          <dt>时区</dt>
-          <dd id="ipTimezone">--</dd>
-        </div>
-      </dl>
     </section>
 
     <section class="workspace" aria-label="文本分享工具">
@@ -457,7 +370,6 @@ button {
 .topbar,
 .summary,
 .metrics,
-.ip-card,
 .workspace,
 .footer {
   position: relative;
@@ -587,55 +499,6 @@ button {
   display: block;
   margin-top: 8px;
   font-size: 1.08rem;
-}
-
-.ip-card {
-  margin: 0 0 18px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.8);
-}
-
-.ip-card-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.ip-card h2 {
-  margin: 6px 0 0;
-  font-size: 1.45rem;
-  line-height: 1.2;
-}
-
-.ip-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0;
-}
-
-.ip-grid div {
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fbfcff;
-}
-
-.ip-grid dt {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.ip-grid dd {
-  margin: 6px 0 0;
-  font-weight: 800;
-  overflow-wrap: anywhere;
 }
 
 .workspace {
@@ -908,15 +771,6 @@ input[type="text"]:focus {
     grid-template-columns: 1fr;
   }
 
-  .ip-card-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .ip-grid {
-    grid-template-columns: 1fr;
-  }
-
   .panel-compose,
   .panel-retrieve {
     padding: 16px;
@@ -966,12 +820,6 @@ const errorResult = document.getElementById('errorResult');
 const errorMessage = document.getElementById('errorMessage');
 const sendButton = document.getElementById('sendButton');
 const retrieveButton = document.getElementById('retrieveButton');
-const ipAddress = document.getElementById('ipAddress');
-const ipStatus = document.getElementById('ipStatus');
-const ipLocation = document.getElementById('ipLocation');
-const ipIsp = document.getElementById('ipIsp');
-const ipOrg = document.getElementById('ipOrg');
-const ipTimezone = document.getElementById('ipTimezone');
 
 const MAX_LENGTH = 10000;
 const ERROR_HIDE_MS = 5000;
@@ -1061,33 +909,6 @@ function flashButton(button, label) {
   }, 1200);
 }
 
-async function loadIPInfo() {
-  try {
-    const response = await fetch('/api/ip');
-    const result = await response.json();
-
-    if (!result.success) {
-      throw new Error(result.error || 'IP query failed');
-    }
-
-    const location = [result.country, result.region, result.city].filter(Boolean).join(' / ');
-    ipAddress.textContent = result.ip || '--';
-    ipLocation.textContent = location || '--';
-    ipIsp.textContent = result.isp || '--';
-    ipOrg.textContent = result.org || '--';
-    ipTimezone.textContent = result.timezone || '--';
-    ipStatus.textContent = '已更新';
-  } catch (error) {
-    console.error(error);
-    ipAddress.textContent = '查询失败';
-    ipLocation.textContent = '--';
-    ipIsp.textContent = '--';
-    ipOrg.textContent = '--';
-    ipTimezone.textContent = '--';
-    ipStatus.textContent = '不可用';
-  }
-}
-
 textInput.addEventListener('input', (event) => {
   setCharCount(event.target.value);
 });
@@ -1175,7 +996,7 @@ copyCode.addEventListener('click', async () => {
 
 setCharCount(textInput.value);
 clearResults();
-loadIPInfo();`;
+`;
 
   return new Response(js, {
     headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
