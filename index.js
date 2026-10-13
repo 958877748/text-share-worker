@@ -191,7 +191,7 @@ function serveHTML() {
         <span class="brand-mark" aria-hidden="true">&gt;_</span>
         <div>
           <p>Text Share</p>
-          <strong>24 小时临时文本分享</strong>
+          <strong>无需登录 · 24 小时临时分享</strong>
         </div>
       </div>
       <div class="status-pill">
